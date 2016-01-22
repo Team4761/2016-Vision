@@ -45,7 +45,7 @@ template<typename ... Args> string string_format(const string&, Args ...);
 
 //int argc, char **argv
 int main() {
-	VideoCapture cap(CV_CAP_AUTO);
+	VideoCapture cap(CV_CAP_ANY);
 	if(!cap.isOpened()) {
 		cout << "Cannot open the video file" << endl;
 		return -1;
@@ -64,7 +64,7 @@ int main() {
 		circle(image, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
 		imshow(window_name, image);
 		key = waitKey(10);
-		if(char(key) == 27) {
+		if(char(key) == 27) { //quit if ESC is pressed
 			break;
 		}
 		print_results_as_json(shapes);

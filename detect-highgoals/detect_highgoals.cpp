@@ -28,7 +28,6 @@ struct bounding_shapes_return {
 	Rect rectangle;
 	Point2f circle_center;
 	float circle_radius;
-	
 };
 
 //Constants
@@ -41,22 +40,36 @@ const string json_format = "{\"rectangle\":{\"top_left\":{\"x\":%d,\"y\":%d},\"w
 //Function prototypes
 bounding_shapes_return get_bounding_shapes(Mat);
 void print_results_as_json(bounding_shapes_return in);
-void show_results(Size, bounding_shapes_return);
+void show_results(Mat, bounding_shapes_return);
 template<typename ... Args> string string_format(const string&, Args ...);
 
-int main(int argc, char **argv) {
-	if(argc != 2) {
-		cout << "Incorrect number of arguments!" << endl;
-		return -1;
-	}
-	Mat image = imread(argv[1], 1);
-	if(!image.data) {
-		cout << "No image data!" << endl;
+//int argc, char **argv
+int main() {
+	VideoCapture cap(CV_CAP_AUTO);
+	if(!cap.isOpened()) {
+		cout << "Cannot open the video file" << endl;
 		return -1;
 	}
 	namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-	bounding_shapes_return shapes = get_bounding_shapes(image);
-	print_results_as_json(shapes);
+	Mat image;
+	char key;
+	bounding_shapes_return shapes;
+	while(1) {
+		bool success = cap.read(image);
+		if(!success) {
+			cout << "Cannot read frame from video file" << endl;
+		}
+		shapes = get_bounding_shapes(image);
+		rectangle(image, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
+		circle(image, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
+		imshow(window_name, image);
+		key = waitKey(10);
+		if(char(key) == 27) {
+			break;
+		}
+		print_results_as_json(shapes);
+	}
+	cap.release();
 }
 
 /*
@@ -68,33 +81,30 @@ bounding_shapes_return get_bounding_shapes(Mat input_img) {
 	inRange(input_img, color_lbound, color_ubound, rgb_out);
 	
 	vector<vector<Point>> contours;
-	vector<Vec4i> hierarchy;
-	findContours(rgb_out, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
+	findContours(rgb_out, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0));
 	
 	vector<vector<Point>> contours_poly(contours.size());
-	vector<Rect> boundRect(contours.size());
-	vector<Point2f> center(contours.size());
-	vector<float> radius(contours.size());
-	
-	Rect largestRect;
-	Point2f largestCircleCenter;
-	float largestCircleRadius;
+	double current_contour_length;
+	double largest_contour_length;
+	vector<Point> largest_contour;
 	for(unsigned int i = 0; i < contours.size(); i++) {
 		approxPolyDP(Mat(contours[i]), contours_poly[i], 3, true);
-		boundRect[i] = boundingRect(Mat(contours_poly[i]));
-		minEnclosingCircle((Mat)contours_poly[i], center[i], radius[i]);
-		if(boundRect[i].area() > largestRect.area()) {
-			largestRect = boundRect[i];
-		}
-		if(radius[i] > largestCircleRadius) {
-			largestCircleCenter = center[i];
-			largestCircleRadius = radius[i];
+		current_contour_length = arcLength(contours_poly[i], true);
+		if(current_contour_length > largest_contour_length) {
+			largest_contour = contours_poly[i];
+			largest_contour_length = current_contour_length;
 		}
 	}
+	
+	Point2f bounding_circle_center;
+	float bounding_circle_radius;
+	Rect bounding_rect = boundingRect(Mat(largest_contour));
+	minEnclosingCircle((Mat)largest_contour, bounding_circle_center, bounding_circle_radius);
+	
 	bounding_shapes_return ret;
-	ret.rectangle = largestRect;
-	ret.circle_center = largestCircleCenter;
-	ret.circle_radius = largestCircleRadius;
+	ret.rectangle = bounding_rect;
+	ret.circle_center = bounding_circle_center;
+	ret.circle_radius = bounding_circle_radius;
 	return ret;
 }
 
@@ -110,26 +120,13 @@ void print_results_as_json(bounding_shapes_return in) {
 }
 
 /*
- * Takes in a result from get_bounding_shapes and draws them onto a new
- * window.
- */
-void show_results(Size size, bounding_shapes_return in) {
-	//drawContours(drawing, contours_poly, i, color, 1, 8, vector<Vec4i>(), 0, Point());
-	Mat drawing = Mat::zeros(size, CV_8UC3);
-	rectangle(drawing, in.rectangle.tl(), in.rectangle.br(), contour_color, 1, 1, 0);
-	circle(drawing, in.circle_center, (int)in.circle_radius, contour_color, 1, 1, 0);
-	imshow(window_name, drawing);
-	waitKey(0);
-}
-
-/*
  * String formatting function.
  * 
  * http://stackoverflow.com/a/26221725/4541644
  */
 template<typename ... Args> string string_format(const std::string& format, Args ... args) {
-    size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1; // Extra space for '\0'
-    unique_ptr<char[]> buf(new char[ size ]); 
-    snprintf(buf.get(), size, format.c_str(), args ...);
-    return string(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
+	size_t size = snprintf(nullptr, 0, format.c_str(), args ...) + 1;
+	unique_ptr<char[]> buf(new char[ size ]); 
+	snprintf(buf.get(), size, format.c_str(), args ...);
+	return string(buf.get(), buf.get() + size - 1);
 }

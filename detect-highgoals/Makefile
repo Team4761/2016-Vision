@@ -5,13 +5,14 @@ else
 	CXXFLAGS=-pipe -std=c++11 -Wall -Wextra
 endif
 
+CXX=g++
 LIBS=-lopencv_core -lopencv_highgui -lopencv_imgproc
 EXECUTABLES=detect_highgoals
 
 all: $(EXECUTABLES)
 
 %: %.cpp
-	g++ $< -o $@ $(CXXFLAGS) $(LIBS)
+	$(CXX) $< -o $@ $(CXXFLAGS) $(LIBS)
 ifeq ($(RELEASE), yes)
 	strip $@
 endif

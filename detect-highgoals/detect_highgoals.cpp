@@ -9,12 +9,10 @@
  * wish to compile with. See "make help" for more information.
  */
 
-#include <cstdio>
 #include <iostream>
 #include <memory>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <string>
 
 using namespace cv;
 using namespace std;
@@ -30,6 +28,12 @@ struct bounding_shapes_return {
     float circle_radius;
 };
 
+enum video_out_mode_t {
+	NONE,
+	REGULAR,
+	COLORFILTER,
+};
+
 //Constants
 const Scalar color_lbound = Scalar(101, 99, 0);
 const Scalar color_ubound = Scalar(255, 255, 121);
@@ -42,31 +46,55 @@ bounding_shapes_return get_bounding_shapes(Mat);
 void print_results_as_json(bounding_shapes_return in);
 template<typename ... Args> string string_format(const string&, Args ...);
 
-//int argc, char **argv
-int main() {
+int main(int argc, char **argv) {
+	video_out_mode_t vidoutmode;
+	if(argc == 2) {
+		if(strcmp(argv[1], "regular") == 0) {
+			vidoutmode = REGULAR;
+		}
+		else if(strcmp(argv[1], "colorfilter") == 0) {
+			vidoutmode = COLORFILTER;
+		}
+		else {
+			cout << "Invalid video output mode!" << endl;
+			return -1;
+		}
+	}
+	else {
+		vidoutmode = NONE;
+	}
     VideoCapture cap(CV_CAP_ANY);
     if(!cap.isOpened()) {
-        cout << "Cannot open the video file" << endl;
+        cout << "Cannot open video capture device" << endl;
         return -1;
     }
     namedWindow(window_name, CV_WINDOW_AUTOSIZE);
-    Mat image;
+    Mat image, output;
     char key;
     bounding_shapes_return shapes;
     while(1) {
         bool success = cap.read(image);
         if(!success) {
             cout << "Cannot read frame from video file" << endl;
+            return -1;
         }
         shapes = get_bounding_shapes(image);
-        rectangle(image, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
-        circle(image, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
-        imshow(window_name, image);
-        key = waitKey(10);
-        if(char(key) == 27) { //quit if ESC is pressed
-            break;
-        }
-        print_results_as_json(shapes);
+        if(vidoutmode != NONE) {
+			if(vidoutmode == COLORFILTER) {
+				inRange(image, color_lbound, color_ubound, output);
+			}
+			else {
+				output = image;
+			}
+			rectangle(output, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
+			circle(output, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
+			imshow(window_name, output);
+			key = waitKey(10);
+			if(char(key) == 27) { //quit if ESC is pressed
+				break;
+			}
+		}
+		print_results_as_json(shapes);
     }
     cap.release();
 }

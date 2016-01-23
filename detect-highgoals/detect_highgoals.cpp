@@ -40,7 +40,6 @@ const string json_format = "{\"rectangle\":{\"top_left\":{\"x\":%d,\"y\":%d},\"w
 //Function prototypes
 bounding_shapes_return get_bounding_shapes(Mat);
 void print_results_as_json(bounding_shapes_return in);
-void show_results(Mat, bounding_shapes_return);
 template<typename ... Args> string string_format(const string&, Args ...);
 
 //int argc, char **argv

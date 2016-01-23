@@ -29,9 +29,9 @@ struct bounding_shapes_return {
 };
 
 enum video_out_mode_t {
-	NONE,
-	REGULAR,
-	COLORFILTER,
+    NONE,
+    REGULAR,
+    COLORFILTER,
 };
 
 //Constants
@@ -47,22 +47,22 @@ void print_results_as_json(bounding_shapes_return in);
 template<typename ... Args> string string_format(const string&, Args ...);
 
 int main(int argc, char **argv) {
-	video_out_mode_t vidoutmode;
-	if(argc == 2) {
-		if(strcmp(argv[1], "regular") == 0) {
-			vidoutmode = REGULAR;
-		}
-		else if(strcmp(argv[1], "colorfilter") == 0) {
-			vidoutmode = COLORFILTER;
-		}
-		else {
-			cout << "Invalid video output mode!" << endl;
-			return -1;
-		}
-	}
-	else {
-		vidoutmode = NONE;
-	}
+    video_out_mode_t vidoutmode;
+    if(argc == 2) {
+        if(strcmp(argv[1], "regular") == 0) {
+            vidoutmode = REGULAR;
+        }
+        else if(strcmp(argv[1], "colorfilter") == 0) {
+            vidoutmode = COLORFILTER;
+        }
+        else {
+            cout << "Invalid video output mode!" << endl;
+            return -1;
+        }
+    }
+    else {
+        vidoutmode = NONE;
+    }
     VideoCapture cap(CV_CAP_ANY);
     if(!cap.isOpened()) {
         cout << "Cannot open video capture device" << endl;
@@ -80,21 +80,21 @@ int main(int argc, char **argv) {
         }
         shapes = get_bounding_shapes(image);
         if(vidoutmode != NONE) {
-			if(vidoutmode == COLORFILTER) {
-				inRange(image, color_lbound, color_ubound, output);
-			}
-			else {
-				output = image;
-			}
-			rectangle(output, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
-			circle(output, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
-			imshow(window_name, output);
-			key = waitKey(10);
-			if(char(key) == 27) { //quit if ESC is pressed
-				break;
-			}
-		}
-		print_results_as_json(shapes);
+            if(vidoutmode == COLORFILTER) {
+                inRange(image, color_lbound, color_ubound, output);
+            }
+            else {
+                output = image;
+            }
+            rectangle(output, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
+            circle(output, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
+            imshow(window_name, output);
+            key = waitKey(10);
+            if(char(key) == 27) { //quit if ESC is pressed
+                break;
+            }
+        }
+        print_results_as_json(shapes);
     }
     cap.release();
 }

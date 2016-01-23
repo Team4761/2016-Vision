@@ -35,8 +35,8 @@ enum video_out_mode_t {
 };
 
 //Constants
-const Scalar color_lbound = Scalar(101, 99, 0);
-const Scalar color_ubound = Scalar(255, 255, 121);
+const Scalar color_lbound = Scalar(20, 40, 5);
+const Scalar color_ubound = Scalar(70, 115, 30);
 const Scalar contour_color = Scalar(255, 255, 255); //white
 const string window_name = "Highgoal Detection Demo";
 const string json_format = "{\"rectangle\":{\"top_left\":{\"x\":%d,\"y\":%d},\"width\":%d,\"height\":%d},\"circle\":{\"center\":{\"x\":%g,\"y\":%g},\"radius\":%g}}";
@@ -63,7 +63,7 @@ int main(int argc, char **argv) {
     else {
         vidoutmode = NONE;
     }
-    VideoCapture cap(CV_CAP_ANY);
+    VideoCapture cap(0);
     if(!cap.isOpened()) {
         cout << "Cannot open video capture device" << endl;
         return -1;
@@ -78,23 +78,29 @@ int main(int argc, char **argv) {
             cout << "Cannot read frame from video file" << endl;
             return -1;
         }
-        shapes = get_bounding_shapes(image);
-        if(vidoutmode != NONE) {
-            if(vidoutmode == COLORFILTER) {
-                inRange(image, color_lbound, color_ubound, output);
-            }
-            else {
-                output = image;
-            }
-            rectangle(output, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
-            circle(output, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
-            imshow(window_name, output);
-            key = waitKey(10);
-            if(char(key) == 27) { //quit if ESC is pressed
-                break;
-            }
-        }
-        print_results_as_json(shapes);
+        try {
+			shapes = get_bounding_shapes(image);
+			if(vidoutmode != NONE) {
+				if(vidoutmode == COLORFILTER) {
+					inRange(image, color_lbound, color_ubound, output);
+				}
+				else {
+					output = image;
+				}
+				rectangle(output, shapes.rectangle.tl(), shapes.rectangle.br(), contour_color, 1, 1, 0);
+				circle(output, shapes.circle_center, (int)shapes.circle_radius, contour_color, 1, 1, 0);
+				imshow(window_name, output);
+				key = waitKey(10);
+				if(char(key) == 27) { //quit if ESC is pressed
+					break;
+				}
+			}
+			print_results_as_json(shapes);
+		}
+		catch(Exception e) {
+			//cout << e.what() << endl;
+			//probably shouldn't pass silently, but whatever
+		}
     }
     cap.release();
 }

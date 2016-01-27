@@ -39,14 +39,17 @@ const Scalar color_lbound = Scalar(20, 40, 5);
 const Scalar color_ubound = Scalar(70, 115, 30);
 const Scalar contour_color = Scalar(255, 255, 255); //white
 const string window_name = "Highgoal Detection Demo";
+const string exposure_cmd_format = "v4l2-ctl --set-ctrl=exposure_absolute=%d --device=%d";
 const string json_format = "{\"rectangle\":{\"top_left\":{\"x\":%d,\"y\":%d},\"width\":%d,\"height\":%d},\"circle\":{\"center\":{\"x\":%g,\"y\":%g},\"radius\":%g}}";
 
 //Function prototypes
 bounding_shapes_return get_bounding_shapes(Mat);
 void print_results_as_json(bounding_shapes_return in);
+int set_exposure(int, int);
 template<typename ... Args> string string_format(const string&, Args ...);
 
 int main(int argc, char **argv) {
+	set_exposure(9, 1);
     video_out_mode_t vidoutmode;
     if(argc == 2) {
         if(strcmp(argv[1], "regular") == 0) {
@@ -99,7 +102,6 @@ int main(int argc, char **argv) {
 		}
 		catch(Exception e) {
 			//cout << e.what() << endl;
-			//probably shouldn't pass silently, but whatever
 		}
     }
     cap.release();
@@ -150,6 +152,11 @@ void print_results_as_json(bounding_shapes_return in) {
                                 in.rectangle.height, in.circle_center.x,
                                 in.circle_center.y, in.circle_radius);
     cout << ret << endl;
+}
+
+int set_exposure(int exposure_absolute, int device_id) {
+	int return_status = system(string_format(exposure_cmd_format, exposure_absolute, device_id).c_str());
+	return return_status;
 }
 
 /*

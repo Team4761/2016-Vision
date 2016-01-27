@@ -7,21 +7,18 @@ endif
 
 CXX=g++
 LIBS=-lopencv_core -lopencv_highgui -lopencv_imgproc
-EXECUTABLES=detect_highgoals
+OBJS=detect_highgoals.o
 
-all: $(EXECUTABLES)
+all: detect_highgoals
 
-%: %.cpp
-	$(CXX) $< -o $@ $(CXXFLAGS) $(LIBS)
+detect_highgoals: $(OBJS)
+	g++ $(OBJS) -o detect_highgoals $(LIBS)
 ifeq ($(RELEASE), yes)
 	strip $@
 endif
 
-get-target-images:
-	curl -o RealFullField.zip https://usfirst.collab.net/sf/frs/do/downloadFile/projects.wpilib/frs.2016_field_images.vision_target_images_for_2016/frs1207?dl=1
-	unzip -q RealFullField.zip
-	rm -rf __MACOSX RealFullField.zip RealFullField/.DS_Store
-	chmod -x RealFullField/*.jpg
+%.o: %.cpp
+	$(CXX) -c $< -o $@ $(CXXFLAGS) $(LIBS)
 
 help:
 	@echo "Targets"

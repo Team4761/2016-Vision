@@ -6,8 +6,8 @@ else
 endif
 
 CXX=g++
-LIBS=-lopencv_core -lopencv_highgui -lopencv_imgproc
-OBJS=detect_highgoals.o
+LIBS=-lntcore -lopencv_core -lopencv_highgui -lopencv_imgproc
+OBJS=detect_highgoals.o networking.o
 
 all: detect_highgoals
 
@@ -20,10 +20,9 @@ endif
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CXXFLAGS) $(LIBS)
 
-help:
-	@echo "Targets"
-	@echo " * all: build everything"
-	@echo " * get-target-images: download + unzip some sample images"
-	@echo " * help: show this help message"
-	@echo "extra info:"
-	@echo " * on raspi, build with RELEASE=yes"
+install-ntcore:
+	cd ntcore && cmake .
+	cd ntcore && make install
+
+clean:
+	rm -rfv *.o

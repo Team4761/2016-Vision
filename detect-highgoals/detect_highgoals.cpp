@@ -9,6 +9,7 @@
  * wish to compile with. See "make help" for more information.
  */
 
+#include "detect_highgoals.hpp"
 #include <iostream>
 #include <memory>
 #include <opencv2/highgui/highgui.hpp>
@@ -17,23 +18,6 @@
 using namespace cv;
 using namespace std;
 
-/*
- * Struct for containing the return value for get_bounding_shapes(). I
- * think this is justifiable in this case since the values are very
- * closely related.
- */
-struct bounding_shapes_return {
-    Rect rectangle;
-    Point2f circle_center;
-    float circle_radius;
-};
-
-enum video_out_mode_t {
-    NONE,
-    REGULAR,
-    COLORFILTER,
-};
-
 //Constants
 const Scalar color_lbound = Scalar(20, 40, 5);
 const Scalar color_ubound = Scalar(70, 115, 30);
@@ -41,12 +25,6 @@ const Scalar contour_color = Scalar(255, 255, 255); //white
 const string window_name = "Highgoal Detection Demo";
 const string exposure_cmd_format = "v4l2-ctl --set-ctrl=exposure_absolute=%d --device=%d";
 const string json_format = "{\"rectangle\":{\"top_left\":{\"x\":%d,\"y\":%d},\"width\":%d,\"height\":%d},\"circle\":{\"center\":{\"x\":%g,\"y\":%g},\"radius\":%g}}";
-
-//Function prototypes
-bounding_shapes_return get_bounding_shapes(Mat);
-void print_results_as_json(bounding_shapes_return in);
-int set_exposure(int, int);
-template<typename ... Args> string string_format(const string&, Args ...);
 
 int main(int argc, char **argv) {
 	set_exposure(9, 1);

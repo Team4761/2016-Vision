@@ -7,7 +7,7 @@ endif
 
 CXX=g++
 LIBS=-lntcore -lopencv_core -lopencv_highgui -lopencv_imgproc
-OBJS=detect_highgoals.o networking.o
+OBJS=calculate_pos.o detect_highgoals.o networking.o
 
 all: detect_highgoals
 

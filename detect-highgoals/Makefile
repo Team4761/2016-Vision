@@ -20,9 +20,5 @@ endif
 %.o: %.cpp
 	$(CXX) -c $< -o $@ $(CXXFLAGS) $(LIBS)
 
-install-ntcore:
-	cd ntcore && cmake .
-	cd ntcore && make install
-
 clean:
 	rm -rfv *.o

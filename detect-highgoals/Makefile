@@ -8,6 +8,7 @@ endif
 CXX=g++
 LIBS=-lntcore -lopencv_core -lopencv_highgui -lopencv_imgproc
 OBJS=calculate_pos.o detect_highgoals.o networking.o
+RM=rm -rfv
 
 all: detect_highgoals
 
@@ -21,4 +22,5 @@ endif
 	$(CXX) -c $< -o $@ $(CXXFLAGS) $(LIBS)
 
 clean:
-	rm -rfv *.o
+	$(RM) detect_highgoals
+	$(RM) *.o

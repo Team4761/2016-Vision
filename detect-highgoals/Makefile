@@ -1,7 +1,6 @@
 ifeq ($(RELEASE), yes)
 	CXXFLAGS=-march=native -O2 -pipe -std=c++11 -Wall -Wextra
 else
-	mode=debug
 	CXXFLAGS=-pipe -std=c++11 -Wall -Wextra
 endif
 

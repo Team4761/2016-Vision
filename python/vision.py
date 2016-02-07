@@ -52,53 +52,52 @@ with picamera.PiCamera() as camera:
 	camera.shutter_speed = 7000
 	log.info("Initialized camera")
 	count = 0
-	max_frames = 1
-	stream = io.BytesIO()
-	for foo in camera.capture_continuous(stream, format="jpeg", use_video_port=True):
-		log.info("Captured image. Starting to process...")
-		
-		stream.truncate()
-		stream.seek(0)
-		data = numpy.fromstring(stream.getvalue(), dtype=numpy.uint8)
-		frame = cv2.imdecode(data, 1)
-		log.debug("Converted data to array")
-		cv2.imwrite("Original.jpg", frame)
-		
-		# Threshold the BGR image
-		mask = cv2.inRange(frame, lower_bound, upper_bound)
-		log.debug("Performed thresholding operation")
-		cv2.imwrite("Mask.jpg", mask)
-		
-		ret, thresh = cv2.threshold(mask, 127, 255, 0)
-		contours, hierarchy = cv2.findContours(thresh, 3, 2)
-		log.debug("Discovered contours")
-		
-		largest_contour = None
-		largest_contour_length = None
+	max_frames = 10
+	with picamera.array.PiRGBArray(camera) as stream:
+		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
+			log.info("Captured image. Starting to process...")
+			
+			stream.seek(0)
+			stream.truncate()
+			frame = stream.array
+			log.debug("Converted data to array")
+			cv2.imwrite("Original.jpg", frame)
+			
+			# Threshold the BGR image
+			mask = cv2.inRange(frame, lower_bound, upper_bound)
+			log.debug("Performed thresholding operation")
+			cv2.imwrite("Mask.jpg", mask)
+			
+			ret, thresh = cv2.threshold(mask, 127, 255, 0)
+			contours, hierarchy = cv2.findContours(thresh, 3, 2)
+			log.debug("Discovered contours")
+			
+			largest_contour = None
+			largest_contour_length = None
 
-		for contour in contours:
-			contour_poly = cv2.approxPolyDP(contour, 3, True)
-			current_contour_length = cv2.arcLength(contour_poly, True)
-			if current_contour_length > largest_contour_length:
-				largest_contour = contour_poly
-				largest_contour_length = current_contour_length
-		log.debug("Filtered contours")
-		
-		r_tl_x, r_tl_y, r_width, r_height = cv2.boundingRect(largest_contour)
-		c_center, c_radius = cv2.minEnclosingCircle(largest_contour)
-		log.debug("Calculated bounding shapes")
-		
-		if using_networktables:
-			data = {}
-			data["r_tl_x"] = r_tl_x
-			data["r_tl_y"] = r_tl_y
-			data["r_width"] = r_width
-			data["r_height"] = r_height
-			data["c_center_x"] = c_center[0]
-			data["c_center_y"] = c_center[1]
-			data["c_radius"] = c_radius
-			write_to_networktables(data)
-
-		count += 1
-		if count >= max_frames:
-			break
+			for contour in contours:
+				contour_poly = cv2.approxPolyDP(contour, 3, True)
+				current_contour_length = cv2.arcLength(contour_poly, True)
+				if current_contour_length > largest_contour_length:
+					largest_contour = contour_poly
+					largest_contour_length = current_contour_length
+			log.debug("Filtered contours")
+			
+			r_tl_x, r_tl_y, r_width, r_height = cv2.boundingRect(largest_contour)
+			c_center, c_radius = cv2.minEnclosingCircle(largest_contour)
+			log.debug("Calculated bounding shapes")
+			
+			if using_networktables:
+				data = {}
+				data["r_tl_x"] = r_tl_x
+				data["r_tl_y"] = r_tl_y
+				data["r_width"] = r_width
+				data["r_height"] = r_height
+				data["c_center_x"] = c_center[0]
+				data["c_center_y"] = c_center[1]
+				data["c_radius"] = c_radius
+				write_to_networktables(data)
+			
+			count += 1
+			if count >= max_frames:
+				break

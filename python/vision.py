@@ -14,7 +14,7 @@ log = logging.getLogger()
 
 log.debug("Initialized logger...")
 
-# define range of color in HSV
+# define range of color in BGR
 lower_bound = numpy.array([0,30,105])
 upper_bound = numpy.array([104,255,255])
 
@@ -52,7 +52,7 @@ with picamera.PiCamera() as camera:
 	camera.shutter_speed = 7000
 	log.info("Initialized camera")
 	count = 0
-	max_frames = 10
+	max_frames = 1
 	stream = io.BytesIO()
 	for foo in camera.capture_continuous(stream, format="jpeg", use_video_port=True):
 		log.info("Captured image. Starting to process...")
@@ -62,17 +62,12 @@ with picamera.PiCamera() as camera:
 		data = numpy.fromstring(stream.getvalue(), dtype=numpy.uint8)
 		frame = cv2.imdecode(data, 1)
 		log.debug("Converted data to array")
-		cv2.imshow("Original", frame)
+		cv2.imwrite("Original.jpg", frame)
 		
-		# Convert BGR to HSV
-		hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-		log.debug("Converted BGR data to HSV")
-		cv2.imshow("BGR to HSV", frame)
-		
-		# Threshold the HSV image
-		mask = cv2.inRange(hsv, lower_bound, upper_bound)
+		# Threshold the BGR image
+		mask = cv2.inRange(frame, lower_bound, upper_bound)
 		log.debug("Performed thresholding operation")
-		cv2.imshow("Mask")
+		cv2.imwrite("Mask.jpg", mask)
 		
 		ret, thresh = cv2.threshold(mask, 127, 255, 0)
 		contours, hierarchy = cv2.findContours(thresh, 3, 2)

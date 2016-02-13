@@ -8,17 +8,17 @@ import picamera.array
 from networktables import NetworkTable
 import time
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.CRITICAL)
 log = logging.getLogger()
 
 log.debug("Initialized logger...")
 
 # define range of color in BGR
-lower_bound = numpy.array([0,60,0])
-upper_bound = numpy.array([100,205,95])
+lower_bound = numpy.array([0,80,0])
+upper_bound = numpy.array([255,255,84])
 
 table = None
-using_networktables = False
+using_networktables = False #For debugging
 
 def _init_networktables():
 	if not using_networktables:
@@ -29,29 +29,22 @@ def _init_networktables():
 	table = NetworkTable.getTable("vision")
 	log.info("Initialized NetworkTables")
 
+# Loads dict into networktables
 def write_to_networktables(data):
 	if table is None:
 		init_networktables()
 	try:
 		if not table.isConnected():
 			log.warning("Not connected to a server. Hmmm... (not actually writing anything)")
-		table.putNumber("r_tl_x", data["r_tl_x"])
-		table.putNumber("r_tl_y", data["r_tl_y"])
-		table.putNumber("r_width", data["r_width"])
-		table.putNumber("r_height", data["r_height"])
-		table.putNumber("c_center_x", data["c_center_x"])
-		table.putNumber("c_center_y", data["c_center_y"])
-		table.putNumber("c_radius", data["c_radius"])
+		for key in data.keys():
+			table.putNumber(key, data[key])
 		log.info("Loaded data into NetworkTables")
 	except KeyError:
 		log.exception("Something in NetworkTables didn't work, see stacktrace for details")
 
-def get_length(contour_poly):
-	return cv2.arcLength(contour_poly, True)
-
 with picamera.PiCamera() as camera:
-	camera.framerate = 16
-	camera.shutter_speed = 400
+	#camera.framerate = 16
+	camera.shutter_speed = 200
 	log.info("Initialized camera")
 	count = 0
 	max_frames = 10
@@ -79,22 +72,20 @@ with picamera.PiCamera() as camera:
 			contours_poly = [cv2.approxPolyDP(contour, 3, True) for contour in contours]
 			largest_contour = sorted(contours_poly, key=lambda cp: -cv2.arcLength(cp, True))[0]
 			
-			r_tl_x, r_tl_y, r_width, r_height = cv2.boundingRect(largest_contour)
-			c_center, c_radius = cv2.minEnclosingCircle(largest_contour)
+			topleft_x, topleft_y, width, height = cv2.boundingRect(largest_contour)
 			log.debug("Calculated bounding shapes")
 			
-			cv2.rectangle(frame, (r_tl_x, r_tl_y), (r_tl_x + r_width, r_tl_y + r_height), (0,255,0), 3)
-			#cv2.imwrite("modded{}.jpg".format(count), frame)
+			print height
+			cv2.rectangle(frame, (topleft_x, topleft_y), (topleft_x + width, topleft_y + height), (255,255,255), 3)
+			cv2.imwrite("modded{}.jpg".format(count), frame)
 			
 			if using_networktables:
-				data = {}
-				data["r_tl_x"] = r_tl_x
-				data["r_tl_y"] = r_tl_y
-				data["r_width"] = r_width
-				data["r_height"] = r_height
-				data["c_center_x"] = c_center[0]
-				data["c_center_y"] = c_center[1]
-				data["c_radius"] = c_radius
+				data = {
+					"topleft_x": topleft_x,
+					"topleft_y": topleft_y,
+					"width": width,
+					"height": height,
+				}
 				write_to_networktables(data)
 			
 			count += 1

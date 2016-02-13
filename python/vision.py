@@ -15,7 +15,7 @@ parser = argparse.ArgumentParser(description="4761's 2016 vision program")
 parser.add_argument("max_frames", metavar="N", type=int, help="Number of pictures to take")
 parser.add_argument("--networktables-ip", metavar="", type=str, default="roborio-4761-frc.local", help="IP address of the desired NetworkTables server")
 parser.add_argument("--use-networktables", metavar="", type=bool, default=False, help="Should values be published to NetworkTables?")
-parser.add_argument("--write-debug-images", metavar="", type=bool, default=False, help="Should images for debugging be written?")
+parser.add_argument("--write-images", metavar="", type=bool, default=False, help="Should images for debugging be written?")
 args = parser.parse_args()
 
 logging.basicConfig(level=logging.DEBUG)
@@ -35,7 +35,7 @@ def crop_image(image, topleft_x, topleft_y, width, height):
 	return image[topleft_y:topleft_y + height, topleft_x:topleft_x + width]
 
 def write_img(file_name, image_data):
-	if args.write_debug_images:
+	if args.write_images:
 		log.debug("Writing image {}...".format(file_name))
 		cv2.imwrite(file_name, image_data)
 

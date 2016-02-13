@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser(description="4761's 2016 vision program")
 parser.add_argument("max_frames", metavar="N", type=int, help="Number of pictures to take")
 parser.add_argument("--networktables-ip", metavar="", type=str, default="roborio-4761-frc.local", help="IP address of the desired NetworkTables server")
 parser.add_argument("--use-networktables", metavar="", type=bool, default=False, help="Should values be published to NetworkTables?")
+parser.add_argument("--write-debug-images", metavar="", type=bool, default=False, help="Should images for debugging be written?")
 args = parser.parse_args()
 
 logging.basicConfig(level=logging.DEBUG)
@@ -32,6 +33,11 @@ using_networktables = args.use_networktables
 
 def crop_image(image, topleft_x, topleft_y, width, height):
 	return image[topleft_y:topleft_y + height, topleft_x:topleft_x + width]
+
+def write_img(file_name, image_data):
+	if args.write_debug_images:
+		log.debug("Writing image {}...".format(file_name))
+		cv2.imwrite(file_name, image_data)
 
 def get_distance_between(pt1, pt2):
 	#sqrt((x2 - x1)^2 + (y2 - y1)^2)
@@ -105,19 +111,22 @@ with picamera.PiCamera() as camera:
 			log.debug("Calculated bounding shapes")
 			
 			bottom_point = sorted(largest_contour, key=lambda x:x[0][1])[::-1][0]
-			bb_distance_from_bottom = camera.resolution[1] - bottom[0][1]
+			bb_distance_from_bottom = camera.resolution[1] - bottom_point[0][1]
 			
 			t = sorted(largest_contour, key=lambda x: x[0][0])
 			
 			leftmost = t[0][0]
 			rightmost = t[::-1][0][0]
 			
+			#TODO: Fail gracefully if no valid second point
+			#TODO: Fail gracefully if only one point (total) found
 			#get second leftmost
 			for line in t:
 				if get_distance_between(leftmost, line[0]) > 50:
 					second_leftmost = line[0]
 					break
 			
+			#get second rightmost
 			for line in t[::-1]:
 				if get_distance_between(rightmost, line[0]) > 50:
 					second_rightmost = line[0]
@@ -126,17 +135,6 @@ with picamera.PiCamera() as camera:
 			left_length = get_distance_between(leftmost, second_leftmost)
 			right_length = get_distance_between(rightmost, second_rightmost)
 
-			cv2.circle(frame, tuple(leftmost), 3, (255,255,255), 2)
-			cv2.circle(frame, tuple(second_leftmost), 3, (255,255,255), 2)
-			cv2.circle(frame, tuple(rightmost), 3, (255,255,255), 2)
-			cv2.circle(frame, tuple(second_rightmost), 3, (255,255,255), 2)
-			cv2.line(frame, tuple(leftmost), tuple(second_leftmost), (255,255,255))
-			cv2.line(frame, tuple(rightmost), tuple(second_rightmost), (255,255,255))				
-			
-			cv2.rectangle(frame, (topleft_x, topleft_y), (topleft_x + width, topleft_y + height), (255,255,255), 3)
-			cv2.imwrite("modded{}.jpg".format(count), frame)
-			#log.info("Wrote image!")
-			
 			if using_networktables:
 				data = {
 					"topleft_x": topleft_x,

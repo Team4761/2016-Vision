@@ -1,7 +1,6 @@
 #!/usr/bin/python2.7
 
 import cv2
-import io
 import logging
 import numpy
 import picamera
@@ -9,14 +8,14 @@ import picamera.array
 from networktables import NetworkTable
 import time
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 log = logging.getLogger()
 
 log.debug("Initialized logger...")
 
 # define range of color in BGR
-lower_bound = numpy.array([0,30,105])
-upper_bound = numpy.array([104,255,255])
+lower_bound = numpy.array([0,60,0])
+upper_bound = numpy.array([100,205,95])
 
 table = None
 using_networktables = False
@@ -47,9 +46,12 @@ def write_to_networktables(data):
 	except KeyError:
 		log.exception("Something in NetworkTables didn't work, see stacktrace for details")
 
+def get_length(contour_poly):
+	return cv2.arcLength(contour_poly, True)
+
 with picamera.PiCamera() as camera:
 	camera.framerate = 16
-	camera.shutter_speed = 7000
+	camera.shutter_speed = 400
 	log.info("Initialized camera")
 	count = 0
 	max_frames = 10
@@ -61,31 +63,28 @@ with picamera.PiCamera() as camera:
 			stream.truncate()
 			frame = stream.array
 			log.debug("Converted data to array")
-			cv2.imwrite("Original.jpg", frame)
+			#cv2.imwrite("Original{}.jpg".format(count), frame)
 			
 			# Threshold the BGR image
 			mask = cv2.inRange(frame, lower_bound, upper_bound)
 			log.debug("Performed thresholding operation")
-			cv2.imwrite("Mask.jpg", mask)
+			#cv2.imwrite("Mask.jpg", mask)
 			
 			ret, thresh = cv2.threshold(mask, 127, 255, 0)
 			contours, hierarchy = cv2.findContours(thresh, 3, 2)
 			log.debug("Discovered contours")
 			
-			largest_contour = None
-			largest_contour_length = None
-
-			for contour in contours:
-				contour_poly = cv2.approxPolyDP(contour, 3, True)
-				current_contour_length = cv2.arcLength(contour_poly, True)
-				if current_contour_length > largest_contour_length:
-					largest_contour = contour_poly
-					largest_contour_length = current_contour_length
-			log.debug("Filtered contours")
+			#Remember, if someone offers you functional programming just say NO! and run away
+			#These two lines find the largest contour by perimeter in the image
+			contours_poly = [cv2.approxPolyDP(contour, 3, True) for contour in contours]
+			largest_contour = sorted(contours_poly, key=lambda cp: -cv2.arcLength(cp, True))[0]
 			
 			r_tl_x, r_tl_y, r_width, r_height = cv2.boundingRect(largest_contour)
 			c_center, c_radius = cv2.minEnclosingCircle(largest_contour)
 			log.debug("Calculated bounding shapes")
+			
+			cv2.rectangle(frame, (r_tl_x, r_tl_y), (r_tl_x + r_width, r_tl_y + r_height), (0,255,0), 3)
+			#cv2.imwrite("modded{}.jpg".format(count), frame)
 			
 			if using_networktables:
 				data = {}

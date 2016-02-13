@@ -34,7 +34,7 @@ using_networktables = args.use_networktables
 def crop_image(image, topleft_x, topleft_y, width, height):
 	return image[topleft_y:topleft_y + height, topleft_x:topleft_x + width]
 
-def write_img(file_name, image_data):
+def write_image(file_name, image_data):
 	if args.write_images:
 		log.debug("Writing image {}...".format(file_name))
 		cv2.imwrite(file_name, image_data)

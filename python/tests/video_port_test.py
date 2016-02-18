@@ -4,7 +4,7 @@ import picamera
 
 with picamera.PiCamera() as camera:
 	stream = io.BytesIO()
-	count = 0
+	count = 1
 	start_time = time.time()
 	for foo in camera.capture_continuous(stream, format='jpeg', use_video_port=True):
 		stream.truncate()

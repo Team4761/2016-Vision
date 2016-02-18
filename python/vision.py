@@ -8,7 +8,7 @@ import picamera.array
 from networktables import NetworkTable
 import time
 
-logging.basicConfig(level=logging.CRITICAL)
+logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger()
 
 log.debug("Initialized logger...")
@@ -17,8 +17,9 @@ log.debug("Initialized logger...")
 lower_bound = numpy.array([0,80,0])
 upper_bound = numpy.array([255,255,84])
 
+global table
 table = None
-using_networktables = False #For debugging
+using_networktables = True #For debugging
 
 def _init_networktables():
 	if not using_networktables:
@@ -26,13 +27,14 @@ def _init_networktables():
 	NetworkTable.setIPAddress("roborio-4761-frc.local")
 	NetworkTable.setClientMode()
 	NetworkTable.initialize()
+	global table
 	table = NetworkTable.getTable("vision")
 	log.info("Initialized NetworkTables")
 
 # Loads dict into networktables
 def write_to_networktables(data):
 	if table is None:
-		init_networktables()
+		_init_networktables()
 	try:
 		if not table.isConnected():
 			log.warning("Not connected to a server. Hmmm... (not actually writing anything)")
@@ -47,7 +49,7 @@ with picamera.PiCamera() as camera:
 	camera.shutter_speed = 200
 	log.info("Initialized camera")
 	count = 0
-	max_frames = 10
+	max_frames = 200
 	with picamera.array.PiRGBArray(camera) as stream:
 		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
 			log.info("Captured image. Starting to process...")
@@ -85,6 +87,7 @@ with picamera.PiCamera() as camera:
 					"topleft_y": topleft_y,
 					"width": width,
 					"height": height,
+					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
 				}
 				write_to_networktables(data)
 			

@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 	src = imread(argv[1], 1);
 
 	const char* source_window = "Source";
-	namedWindow(source_window, CV_WINDOW_AUTOSIZE);
+	namedWindow(source_window, WINDOW_NORMAL);
 	imshow(source_window, src);
 
 	createTrackbar("Blue Lower:", "Source", &blue_lower, max_bgr, tuner_callback);
@@ -53,7 +53,7 @@ int main(int argc, char** argv) {
 void tuner_callback(int, void*) {
 	Mat output;
 	inRange(src, Scalar(blue_lower, green_lower, red_lower), Scalar(blue_upper, green_upper, red_upper), output);
-	namedWindow("Mask", CV_WINDOW_AUTOSIZE);
+	namedWindow("Mask", WINDOW_NORMAL);
 	imshow("Mask", output);
 }
 

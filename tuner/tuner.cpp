@@ -46,7 +46,7 @@ int main(int argc, char** argv) {
 	
 	tuner_callback(0, 0);
 
-	waitKey(0);
+	while(waitKey(0) != 27) {}
 	return 0;
 }
 

@@ -1,0 +1,9 @@
+[Unit]
+Description=NetworkTables-Powered Raspberry Pi Control Daemon
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python2.7 /usr/local/bin/control_daemon.py
+
+[Install]
+WantedBy=graphical.target

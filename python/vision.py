@@ -4,10 +4,10 @@ import argparse
 import cv2
 import logging
 import numpy
-#import picamera
-#import picamera.array
+import picamera
+import picamera.array
 import math
-#from networktables import NetworkTable
+from networktables import NetworkTable
 import sys
 import time
 

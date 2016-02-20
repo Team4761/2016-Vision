@@ -23,7 +23,15 @@ global table
 table = None
 using_networktables = True #For debugging
 
-def _init_networktables():
+def crop_image(image, topleft_x, topleft_y, width, height):
+	return image[topleft_y:topleft_y + height, topleft_x:topleft_x + width]
+
+def get_distance_between(pt1, pt2):
+	#sqrt((x2 - x1)^2 + (y2 - y1)^2)
+	return math.sqrt((pt1[0] - pt2[0])**2 + (pt1[1] - pt2[1])**2)
+
+def init_networktables():
+	#TODO: Check to see if NetworkTables is already initialized
 	if not using_networktables:
 		raise Exception("Attempted to initialize NetworkTables while NetworkTables is disabled!")
 	NetworkTable.setIPAddress("roborio-4761-frc.local")
@@ -36,7 +44,8 @@ def _init_networktables():
 # Loads dict into networktables
 def write_to_networktables(data):
 	if table is None:
-		_init_networktables()
+		log.debug("NetworkTables is not intialized! Initializing...")
+		init_networktables()
 	try:
 		if not table.isConnected():
 			log.warning("Not connected to a NetworkTables server (nothing will actually be sent)")
@@ -47,12 +56,11 @@ def write_to_networktables(data):
 		log.exception("Something in NetworkTables didn't work, see stacktrace for details")
 
 with picamera.PiCamera() as camera:
-	#camera.framerate = 16
 	camera.shutter_speed = 200
+	time.sleep(0.5) #Shutter speed is not set instantly. This wait allows time for changes to take effect.
 	log.info("Initialized camera")
 	count = 0
 	max_frames = int(sys.argv[1])
-	time.sleep(0.5) #Shutter speed is not set instantly. This allows changes to take effect.
 	with picamera.array.PiRGBArray(camera) as stream:
 		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
 			log.info("Captured image. Starting to process...")
@@ -75,6 +83,10 @@ with picamera.PiCamera() as camera:
 				#These two lines find the largest contour by perimeter in the image
 				contours_poly = [cv2.approxPolyDP(contour, 3, True) for contour in contours]
 				largest_contour = sorted(contours_poly, key=lambda cp: -cv2.arcLength(cp, True))[0]
+				if len(largest_contour) == 8:
+					log.debug("Got perfect 8 contours! :D")
+				else:
+					log.debug("Got {} contours instead of 8. :\\".format(len(largest_contour)))
 			except IndexError:
 				log.error("No contours found. Continuing...")
 				count += 1
@@ -86,16 +98,33 @@ with picamera.PiCamera() as camera:
 			log.debug("Calculated bounding shapes")
 			
 			t = sorted(largest_contour, key=lambda x: x[0][0])
+			
 			leftmost = t[0][0]
-			second_leftmost = t[1][0]
 			rightmost = t[::-1][0][0]
-			second_rightmost = t[::-1][1][0]
 			
-			left_length = math.sqrt((leftmost[0] - second_leftmost[0])**2 + (leftmost[1] - second_leftmost[1])**2)
-			right_length = math.sqrt((rightmost[0] - second_rightmost[0])**2 + (rightmost[1] - second_rightmost[1])**2)
+			#get second leftmost
+			for line in t:
+				if get_distance_between(leftmost, line[0]) > 50:
+					second_leftmost = line[0]
+					break
 			
-			#cv2.rectangle(frame, (topleft_x, topleft_y), (topleft_x + width, topleft_y + height), (255,255,255), 3)
-			#cv2.imwrite("modded{}.jpg".format(count), frame)
+			for line in t[::-1]:
+				if get_distance_between(rightmost, line[0]) > 50:
+					second_rightmost = line[0]
+					break
+			
+			left_length = get_distance_between(leftmost, second_leftmost)
+			right_length = get_distance_between(rightmost, second_rightmost)
+
+			cv2.circle(frame, tuple(leftmost), 3, (255,255,255), 2)
+			cv2.circle(frame, tuple(second_leftmost), 3, (255,255,255), 2)
+			cv2.circle(frame, tuple(rightmost), 3, (255,255,255), 2)
+			cv2.circle(frame, tuple(second_rightmost), 3, (255,255,255), 2)
+			cv2.line(frame, tuple(leftmost), tuple(second_leftmost), (255,255,255))
+			cv2.line(frame, tuple(rightmost), tuple(second_rightmost), (255,255,255))				
+			
+			cv2.rectangle(frame, (topleft_x, topleft_y), (topleft_x + width, topleft_y + height), (255,255,255), 3)
+			cv2.imwrite("modded{}.jpg".format(count), frame)
 			#log.info("Wrote image!")
 			
 			if using_networktables:
@@ -106,8 +135,8 @@ with picamera.PiCamera() as camera:
 					"height": height,
 					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
 					"distance_guess": -0.28478 * height + 43.143,
-					"left_side_length": left_length,
-					"right_side_length": right_length,
+					#"left_side_length": left_length,
+					#"right_side_length": right_length,
 				}
 				write_to_networktables(data)
 			

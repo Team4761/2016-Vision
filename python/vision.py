@@ -1,14 +1,21 @@
 #!/usr/bin/python2.7
 
+import argparse
 import cv2
 import logging
 import numpy
-import picamera
-import picamera.array
+#import picamera
+#import picamera.array
 import math
-from networktables import NetworkTable
+#from networktables import NetworkTable
 import sys
 import time
+
+parser = argparse.ArgumentParser(description="4761's 2016 vision program")
+parser.add_argument("max_frames", metavar="N", type=int, help="Number of pictures to take")
+parser.add_argument("--networktables-ip", metavar="", type=str, default="roborio-4761-frc.local", help="IP address of the desired NetworkTables server")
+parser.add_argument("--use-networktables", metavar="", type=bool, default=False, help="Should values be published to NetworkTables?")
+args = parser.parse_args()
 
 logging.basicConfig(level=logging.DEBUG)
 log = logging.getLogger()
@@ -21,7 +28,7 @@ upper_bound = numpy.array([255,255,84])
 
 global table
 table = None
-using_networktables = True #For debugging
+using_networktables = args.use_networktables
 
 def crop_image(image, topleft_x, topleft_y, width, height):
 	return image[topleft_y:topleft_y + height, topleft_x:topleft_x + width]
@@ -34,7 +41,7 @@ def init_networktables():
 	#TODO: Check to see if NetworkTables is already initialized
 	if not using_networktables:
 		raise Exception("Attempted to initialize NetworkTables while NetworkTables is disabled!")
-	NetworkTable.setIPAddress("roborio-4761-frc.local")
+	NetworkTable.setIPAddress(args.networktables_ip)
 	NetworkTable.setClientMode()
 	NetworkTable.initialize()
 	global table
@@ -60,7 +67,7 @@ with picamera.PiCamera() as camera:
 	time.sleep(0.5) #Shutter speed is not set instantly. This wait allows time for changes to take effect.
 	log.info("Initialized camera")
 	count = 0
-	max_frames = int(sys.argv[1])
+	max_frames = args.max_frames
 	with picamera.array.PiRGBArray(camera) as stream:
 		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
 			log.info("Captured image. Starting to process...")

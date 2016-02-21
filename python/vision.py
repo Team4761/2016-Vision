@@ -104,6 +104,9 @@ with picamera.PiCamera() as camera:
 			topleft_x, topleft_y, width, height = cv2.boundingRect(largest_contour)
 			log.debug("Calculated bounding shapes")
 			
+			bottom_point = sorted(largest_contour, key=lambda x:x[0][1])[::-1][0]
+			bb_distance_from_bottom = camera.resolution[1] - bottom[0][1]
+			
 			t = sorted(largest_contour, key=lambda x: x[0][0])
 			
 			leftmost = t[0][0]
@@ -141,7 +144,7 @@ with picamera.PiCamera() as camera:
 					"width": width,
 					"height": height,
 					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
-					"distance_guess": -0.28478 * height + 43.143,
+					"distance_guess": 14.722 * 0.99844**bb_distance_from_bottom,
 					"left_side_length": left_length,
 					"right_side_length": right_length,
 				}

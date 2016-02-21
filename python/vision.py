@@ -142,8 +142,8 @@ with picamera.PiCamera() as camera:
 					"height": height,
 					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
 					"distance_guess": -0.28478 * height + 43.143,
-					#"left_side_length": left_length,
-					#"right_side_length": right_length,
+					"left_side_length": left_length,
+					"right_side_length": right_length,
 				}
 				write_to_networktables(data)
 			

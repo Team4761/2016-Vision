@@ -119,11 +119,11 @@ with picamera.PiCamera() as camera:
 			t = sorted(largest_contour, key=lambda x: x[0][0])
 			
 			leftmost = t[0][0]
-			rightmost = t[::-1][0][0]
-			
+			rightmost = t[::-1][0]
 			#TODO: Fail gracefully if only one point (total) found			
 
 			not_valid = True
+
 			#get second leftmost
 			for line in t:
 				if get_distance_between(leftmost, line[0]) > 50:

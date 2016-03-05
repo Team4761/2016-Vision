@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-
+      
 import argparse
 import cv2
 import logging
@@ -15,6 +15,7 @@ parser = argparse.ArgumentParser(description="4761's 2016 vision program")
 parser.add_argument("max_frames", metavar="N", type=int, help="Number of pictures to take")
 parser.add_argument("--networktables-ip", metavar="", type=str, default="roborio-4761-frc.local", help="IP address of the desired NetworkTables server")
 parser.add_argument("--use-networktables", metavar="", type=bool, default=False, help="Should values be published to NetworkTables?")
+parser.add_argument("--write-images", metavar="", type=bool, default=False, help="Should images for debugging be written?")
 args = parser.parse_args()
 
 logging.basicConfig(level=logging.DEBUG)
@@ -23,8 +24,8 @@ log = logging.getLogger()
 log.debug("Initialized logger...")
 
 # define range of color in BGR
-lower_bound = numpy.array([0,110,0])
-upper_bound = numpy.array([255,255,84])
+lower_bound = numpy.array([0,31,0])
+upper_bound = numpy.array([255,255,121])
 
 global table
 table = None
@@ -32,6 +33,11 @@ using_networktables = args.use_networktables
 
 def crop_image(image, topleft_x, topleft_y, width, height):
 	return image[topleft_y:topleft_y + height, topleft_x:topleft_x + width]
+
+def write_image(file_name, image_data):
+	if args.write_images:
+		log.debug("Writing image {}...".format(file_name))
+		cv2.imwrite(file_name, image_data)
 
 def get_distance_between(pt1, pt2):
 	#sqrt((x2 - x1)^2 + (y2 - y1)^2)
@@ -69,14 +75,16 @@ with picamera.PiCamera() as camera:
 	count = 0
 	max_frames = args.max_frames
 	with picamera.array.PiRGBArray(camera) as stream:
+		start_time = time.time()
 		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
 			log.info("Captured image. Starting to process...")
-			
+			print time.time() - start_time
 			stream.seek(0)
 			stream.truncate()
 			frame = stream.array
 			log.debug("Converted data to array")
 			
+			write_image("original{}.jpg".format(count), frame)
 			# Threshold the BGR image
 			mask = cv2.inRange(frame, lower_bound, upper_bound)
 			log.debug("Performed thresholding operation")
@@ -97,7 +105,7 @@ with picamera.PiCamera() as camera:
 			except IndexError:
 				log.error("No contours found. Continuing...")
 				count += 1
-				if count >= max_frames:
+				if count >= max_frames and max_frames != 0:
 					break
 				continue
 			
@@ -105,51 +113,54 @@ with picamera.PiCamera() as camera:
 			log.debug("Calculated bounding shapes")
 			
 			bottom_point = sorted(largest_contour, key=lambda x:x[0][1])[::-1][0]
-			bb_distance_from_bottom = camera.resolution[1] - bottom[0][1]
+			bb_distance_from_bottom = camera.resolution[1] - bottom_point[0][1]
 			
+			print bb_distance_from_bottom
 			t = sorted(largest_contour, key=lambda x: x[0][0])
 			
 			leftmost = t[0][0]
 			rightmost = t[::-1][0][0]
 			
+			#TODO: Fail gracefully if only one point (total) found			
+
+			not_valid = True
 			#get second leftmost
 			for line in t:
 				if get_distance_between(leftmost, line[0]) > 50:
 					second_leftmost = line[0]
+					not_valid = False
 					break
 			
+			#get second rightmost
 			for line in t[::-1]:
 				if get_distance_between(rightmost, line[0]) > 50:
 					second_rightmost = line[0]
+					not_valid = False
 					break
-			
+
+			if not_valid:
+				log.debug("Hrm (couldn't find second points)")
+				continue
+
 			left_length = get_distance_between(leftmost, second_leftmost)
 			right_length = get_distance_between(rightmost, second_rightmost)
 
-			cv2.circle(frame, tuple(leftmost), 3, (255,255,255), 2)
-			cv2.circle(frame, tuple(second_leftmost), 3, (255,255,255), 2)
-			cv2.circle(frame, tuple(rightmost), 3, (255,255,255), 2)
-			cv2.circle(frame, tuple(second_rightmost), 3, (255,255,255), 2)
-			cv2.line(frame, tuple(leftmost), tuple(second_leftmost), (255,255,255))
-			cv2.line(frame, tuple(rightmost), tuple(second_rightmost), (255,255,255))				
-			
-			cv2.rectangle(frame, (topleft_x, topleft_y), (topleft_x + width, topleft_y + height), (255,255,255), 3)
-			cv2.imwrite("modded{}.jpg".format(count), frame)
-			#log.info("Wrote image!")
-			
 			if using_networktables:
+				distance = 11.082 * 0.99678**bb_distance_from_bottom
+				print "Distance: {}".format(distance)
 				data = {
 					"topleft_x": topleft_x,
 					"topleft_y": topleft_y,
 					"width": width,
 					"height": height,
 					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
-					"distance_guess": 14.722 * 0.99844**bb_distance_from_bottom,
+					"distance_guess": distance, #13.317 * 0.99688**bb_distance_from_bottom, #14.722 * 0.99844**bb_distance_from_bottom - 3,
 					"left_side_length": left_length,
 					"right_side_length": right_length,
+					"heartbeat": 1,
 				}
 				write_to_networktables(data)
 			
 			count += 1
-			if count >= max_frames:
+			if count >= max_frames and max_frames != 0:
 				break

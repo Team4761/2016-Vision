@@ -6,4 +6,4 @@ After=network.target
 ExecStart=/usr/bin/python2.7 /usr/local/bin/control_daemon.py
 
 [Install]
-WantedBy=graphical.target
+WantedBy=multi-user.target

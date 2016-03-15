@@ -24,8 +24,8 @@ log = logging.getLogger()
 log.debug("Initialized logger...")
 
 # define range of color in BGR
-lower_bound = numpy.array([0,31,0])
-upper_bound = numpy.array([255,255,121])
+lower_bound = numpy.array([0,42,0])
+upper_bound = numpy.array([255,191,35])
 
 global table
 table = None
@@ -69,7 +69,7 @@ def write_to_networktables(data):
 		log.exception("Something in NetworkTables didn't work, see stacktrace for details")
 
 with picamera.PiCamera() as camera:
-	camera.shutter_speed = 200
+	camera.shutter_speed = 100
 	time.sleep(0.5) #Shutter speed is not set instantly. This wait allows time for changes to take effect.
 	log.info("Initialized camera")
 	count = 0
@@ -89,6 +89,7 @@ with picamera.PiCamera() as camera:
 			mask = cv2.inRange(frame, lower_bound, upper_bound)
 			log.debug("Performed thresholding operation")
 			
+			write_image("mask{}.jpg".format(count), mask)
 			ret, thresh = cv2.threshold(mask, 127, 255, 0)
 			contours, hierarchy = cv2.findContours(thresh, 3, 2)
 			log.debug("Discovered contours")
@@ -107,6 +108,7 @@ with picamera.PiCamera() as camera:
 				count += 1
 				if count >= max_frames and max_frames != 0:
 					break
+				write_to_networktables({"can_see_target": 0})
 				continue
 			
 			topleft_x, topleft_y, width, height = cv2.boundingRect(largest_contour)
@@ -119,11 +121,11 @@ with picamera.PiCamera() as camera:
 			t = sorted(largest_contour, key=lambda x: x[0][0])
 			
 			leftmost = t[0][0]
-			rightmost = t[::-1][0]
+			rightmost = t[::-1][0][0]
+			
 			#TODO: Fail gracefully if only one point (total) found			
 
 			not_valid = True
-
 			#get second leftmost
 			for line in t:
 				if get_distance_between(leftmost, line[0]) > 50:
@@ -140,13 +142,14 @@ with picamera.PiCamera() as camera:
 
 			if not_valid:
 				log.debug("Hrm (couldn't find second points)")
+				write_to_networktables({"can_see_target": 0})
 				continue
 
 			left_length = get_distance_between(leftmost, second_leftmost)
 			right_length = get_distance_between(rightmost, second_rightmost)
 
 			if using_networktables:
-				distance = 11.082 * 0.99678**bb_distance_from_bottom
+				distance = 10.648 * 0.99857**bb_distance_from_bottom #11.601 * 0.99688**bb_distance_from_bottom #11.082 * 0.99678**bb_distance_from_bottom
 				print "Distance: {}".format(distance)
 				data = {
 					"topleft_x": topleft_x,
@@ -158,6 +161,7 @@ with picamera.PiCamera() as camera:
 					"left_side_length": left_length,
 					"right_side_length": right_length,
 					"heartbeat": 1,
+					"can_see_target": 1,
 				}
 				write_to_networktables(data)
 			

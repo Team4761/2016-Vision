@@ -1,0 +1,9 @@
+[Unit]
+Description=Vision. Wow!
+After=network.target
+
+[Service]
+ExecStart=/usr/bin/python2.7 /home/pi/2016-Vision/python/vision.py --use-networktables=true
+
+[Install]
+WantedBy=multi-user.target

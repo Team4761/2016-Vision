@@ -75,10 +75,8 @@ with picamera.PiCamera() as camera:
 	count = 0
 	max_frames = args.max_frames
 	with picamera.array.PiRGBArray(camera) as stream:
-		start_time = time.time()
 		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
 			log.info("Captured image. Starting to process...")
-			print time.time() - start_time
 			stream.seek(0)
 			stream.truncate()
 			frame = stream.array

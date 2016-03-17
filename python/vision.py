@@ -68,7 +68,7 @@ def write_to_networktables(data):
 		if not table.isConnected():
 			log.warning("Not connected to a NetworkTables server (nothing will actually be sent)")
 		for key in data.keys():
-			table.putNumber(key, data[key])
+			table.putValue(key, data[key])
 		log.info("Loaded data into NetworkTable")
 	except KeyError:
 		log.exception("Something in NetworkTables didn't work, see stacktrace for details")

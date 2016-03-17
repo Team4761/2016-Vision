@@ -13,12 +13,17 @@ import time
 
 parser = argparse.ArgumentParser(description="4761's 2016 vision program")
 parser.add_argument("max_frames", metavar="N", type=int, help="Number of pictures to take")
+parser.add_argument("--loglevel", metavar="", type=str, choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"], default="INFO",help="Minimum level to show log messages for")
 parser.add_argument("--networktables-ip", metavar="", type=str, default="roborio-4761-frc.local", help="IP address of the desired NetworkTables server")
 parser.add_argument("--use-networktables", metavar="", type=bool, default=False, help="Should values be published to NetworkTables?")
 parser.add_argument("--write-images", metavar="", type=bool, default=False, help="Should images for debugging be written?")
 args = parser.parse_args()
 
-logging.basicConfig(level=logging.DEBUG)
+numeric_log_level = getattr(logging, args.loglevel.upper(), None)
+if not isinstance(numeric_level, int):
+	raise ValueError('Invalid log level: %s' % loglevel)
+
+logging.basicConfig(level=numeric_log_level)
 log = logging.getLogger()
 
 log.debug("Initialized logger...")

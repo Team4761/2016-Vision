@@ -147,7 +147,7 @@ with picamera.PiCamera() as camera:
 			right_length = get_distance_between(rightmost, second_rightmost)
 
 			if using_networktables:
-				distance = 10.648 * 0.99857**bb_distance_from_bottom #11.601 * 0.99688**bb_distance_from_bottom #11.082 * 0.99678**bb_distance_from_bottom
+				distance = 10.648 * 0.99857**bb_distance_from_bottom
 				print "Distance: {}".format(distance)
 				data = {
 					"topleft_x": topleft_x,
@@ -155,7 +155,7 @@ with picamera.PiCamera() as camera:
 					"width": width,
 					"height": height,
 					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
-					"distance_guess": distance, #13.317 * 0.99688**bb_distance_from_bottom, #14.722 * 0.99844**bb_distance_from_bottom - 3,
+					"distance_guess": distance,
 					"left_side_length": left_length,
 					"right_side_length": right_length,
 					"heartbeat": 1,

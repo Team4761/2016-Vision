@@ -72,10 +72,9 @@ with picamera.PiCamera() as camera:
 	camera.shutter_speed = 100
 	time.sleep(0.5) #Shutter speed is not set instantly. This wait allows time for changes to take effect.
 	log.info("Initialized camera")
-	count = 0
 	max_frames = args.max_frames
 	with picamera.array.PiRGBArray(camera) as stream:
-		for foo in camera.capture_continuous(stream, format="bgr", use_video_port=True):
+		for count, foo in enumerate(camera.capture_continuous(stream, format="bgr", use_video_port=True)):
 			log.info("Captured image. Starting to process...")
 			stream.seek(0)
 			stream.truncate()
@@ -103,7 +102,6 @@ with picamera.PiCamera() as camera:
 					log.debug("Got {} contours instead of 8. :\\".format(len(largest_contour)))
 			except IndexError:
 				log.error("No contours found. Continuing...")
-				count += 1
 				if count >= max_frames and max_frames != 0:
 					break
 				write_to_networktables({"can_see_target": 0})
@@ -162,7 +160,6 @@ with picamera.PiCamera() as camera:
 					"can_see_target": 1,
 				}
 				write_to_networktables(data)
-			
-			count += 1
+				
 			if count >= max_frames and max_frames != 0:
 				break

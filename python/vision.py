@@ -114,35 +114,17 @@ with picamera.PiCamera() as camera:
 			bb_distance_from_bottom = camera.resolution[1] - bottom_point[0][1]
 			
 			print bb_distance_from_bottom
-			t = sorted(largest_contour, key=lambda x: x[0][0])
 			
-			leftmost = t[0][0]
-			rightmost = t[::-1][0][0]
-			
-			#TODO: Fail gracefully if only one point (total) found			
-
 			not_valid = True
-			#get second leftmost
-			for line in t:
-				if get_distance_between(leftmost, line[0]) > 50:
-					second_leftmost = line[0]
-					not_valid = False
-					break
-			
-			#get second rightmost
-			for line in t[::-1]:
-				if get_distance_between(rightmost, line[0]) > 50:
-					second_rightmost = line[0]
-					not_valid = False
-					break
+			# Check that area of bounding box is more that 3600 pixels (60x60)
+			# TODO: Is this reasonable?
+			if not width * height < 3600:
+				not_valid = False
 
 			if not_valid:
 				log.debug("Hrm (couldn't find second points)")
 				write_to_networktables({"can_see_target": 0})
 				continue
-
-			left_length = get_distance_between(leftmost, second_leftmost)
-			right_length = get_distance_between(rightmost, second_rightmost)
 
 			if using_networktables:
 				distance = 10.648 * 0.99857**bb_distance_from_bottom
@@ -154,8 +136,6 @@ with picamera.PiCamera() as camera:
 					"height": height,
 					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
 					"distance_guess": distance,
-					"left_side_length": left_length,
-					"right_side_length": right_length,
 					"heartbeat": 1,
 					"can_see_target": 1,
 				}

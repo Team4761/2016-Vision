@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-      
+
 import argparse
 import cv2
 import logging
@@ -8,7 +8,7 @@ import picamera
 import picamera.array
 import math
 from networktables import NetworkTable
-import sys
+import threading
 import time
 
 parser = argparse.ArgumentParser(description="4761's 2016 vision program")
@@ -20,8 +20,8 @@ parser.add_argument("--write-images", metavar="", type=bool, default=False, help
 args = parser.parse_args()
 
 numeric_log_level = getattr(logging, args.loglevel.upper(), None)
-if not isinstance(numeric_level, int):
-	raise ValueError('Invalid log level: %s' % loglevel)
+if not isinstance(numeric_log_level, int):
+	raise ValueError('Invalid log level: %s' % args.loglevel)
 
 logging.basicConfig(level=numeric_log_level)
 log = logging.getLogger()
@@ -73,32 +73,49 @@ def write_to_networktables(data):
 	except KeyError:
 		log.exception("Something in NetworkTables didn't work, see stacktrace for details")
 
-with picamera.PiCamera() as camera:
-	camera.shutter_speed = 100
-	time.sleep(0.5) #Shutter speed is not set instantly. This wait allows time for changes to take effect.
-	log.info("Initialized camera")
-	max_frames = args.max_frames
-	with picamera.array.PiRGBArray(camera) as stream:
-		for count, foo in enumerate(camera.capture_continuous(stream, format="bgr", use_video_port=True)):
-			log.info("Captured image. Starting to process...")
-			stream.seek(0)
-			stream.truncate()
-			frame = stream.array
-			log.debug("Converted data to array")
-			
+count = None
+frame = None
+stopped = False
+camera_resolution =
+
+def capture_images():
+	global count
+	global frame
+	global camera_resolution
+	with picamera.PiCamera() as camera:
+		camera_resolution = camera.resolution
+		camera.shutter_speed = 100
+		time.sleep(0.5) #Shutter speed is not set instantly. This wait allows time for changes to take effect.
+		log.info("Initialized camera")
+		max_frames = args.max_frames
+		with picamera.array.PiRGBArray(camera) as stream:
+			for index, foo in enumerate(camera.capture_continuous(stream, format="bgr", use_video_port=True)):
+				if stopped is True:
+					return
+				count = index
+				log.info("Captured image. Starting to process...")
+				stream.seek(0)
+				stream.truncate()
+				frame = stream.array
+				log.debug("Converted data to array")
+
+def process_frames():
+	while True:
+		if stopped is True:
+			return
+		if frame is not None:
 			write_image("original{}.jpg".format(count), frame)
+
 			# Threshold the BGR image
 			mask = cv2.inRange(frame, lower_bound, upper_bound)
 			log.debug("Performed thresholding operation")
-			
 			write_image("mask{}.jpg".format(count), mask)
+
 			ret, thresh = cv2.threshold(mask, 127, 255, 0)
 			contours, hierarchy = cv2.findContours(thresh, 3, 2)
 			log.debug("Discovered contours")
-			
+
 			try:
-				#Remember, if someone offers you functional programming just say NO! and run away
-				#These two lines find the largest contour by perimeter in the image
 				contours_poly = [cv2.approxPolyDP(contour, 3, True) for contour in contours]
 				largest_contour = sorted(contours_poly, key=lambda cp: -cv2.arcLength(cp, True))[0]
 				if len(largest_contour) == 8:
@@ -106,20 +123,18 @@ with picamera.PiCamera() as camera:
 				else:
 					log.debug("Got {} contours instead of 8. :\\".format(len(largest_contour)))
 			except IndexError:
-				log.error("No contours found. Continuing...")
-				if count >= max_frames and max_frames != 0:
-					break
+				log.error("No contours found. Ending processing for this frame...")
 				write_to_networktables({"can_see_target": 0})
-				continue
-			
+				return
+
 			topleft_x, topleft_y, width, height = cv2.boundingRect(largest_contour)
 			log.debug("Calculated bounding shapes")
-			
+
 			bottom_point = sorted(largest_contour, key=lambda x:x[0][1])[::-1][0]
-			bb_distance_from_bottom = camera.resolution[1] - bottom_point[0][1]
-			
-			print bb_distance_from_bottom
-			
+			bb_distance_from_bottom = camera_resolution[1] - bottom_point[0][1]
+
+			log.debug("Distance from bottom (px):" + bb_distance_from_bottom)
+
 			not_valid = True
 			# Check that area of bounding box is more that 3600 pixels (60x60)
 			# TODO: Is this reasonable?
@@ -127,24 +142,33 @@ with picamera.PiCamera() as camera:
 				not_valid = False
 
 			if not_valid:
-				log.debug("Hrm (couldn't find second points)")
+				log.debug("No reasonable shapes found. Ending processing for this frame...")
 				write_to_networktables({"can_see_target": 0})
-				continue
+				return
 
 			if using_networktables:
 				distance = 10.648 * 0.99857**bb_distance_from_bottom
-				print "Distance: {}".format(distance)
+				log.info("Distance to target: {} feet".format(distance))
 				data = {
 					"topleft_x": topleft_x,
 					"topleft_y": topleft_y,
 					"width": width,
 					"height": height,
-					"horiz_offset": (topleft_x + (width / 2)) - (camera.resolution[0] / 2),
+					"horiz_offset": (topleft_x + (width / 2)) - (camera_resolution[0] / 2),
 					"distance_guess": distance,
 					"heartbeat": 1,
 					"can_see_target": 1,
 				}
 				write_to_networktables(data)
-				
-			if count >= max_frames and max_frames != 0:
-				break
+	else:
+		log.warning("Frame is null (this probably means the camera hasn't started capturing yet.")
+
+if __name__ == "__main__":
+	capturing_thread = threading.Thread(target=capture_images)
+	processing_thread = threading.Thread(target=process_frames)
+	while True:
+		try:
+			pass
+		except KeyboardInterrupt:
+			stopped = True
+			break

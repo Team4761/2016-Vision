@@ -76,7 +76,7 @@ def write_to_networktables(data):
 count = None
 frame = None
 stopped = False
-camera_resolution =
+camera_resolution = None
 
 def capture_images():
 	global count

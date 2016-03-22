@@ -154,7 +154,7 @@ def process_frames():
 					"topleft_y": topleft_y,
 					"width": width,
 					"height": height,
-					"horiz_offset": (topleft_x + (width / 2)) - (camera_resolution[0] / 2),
+					"horiz_offset": get_offset(topleft_x, width, camera_resolution),
 					"distance_guess": distance,
 					"heartbeat": 1,
 					"can_see_target": 1,
@@ -162,6 +162,11 @@ def process_frames():
 				write_to_networktables(data)
 	else:
 		log.warning("Frame is null (this probably means the camera hasn't started capturing yet.")
+
+def get_offset(topleft_x, bb_width, resolution):
+	middle = topleft_x + (bb_width / 2)
+	pixel_offset = middle - resolution[0] / 2
+	angle_offset = pixel_offset * (23.0 / (resolution[0] / 2))
 
 if __name__ == "__main__":
 	capturing_thread = threading.Thread(target=capture_images)

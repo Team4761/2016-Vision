@@ -167,6 +167,7 @@ def get_offset(topleft_x, bb_width, resolution):
 	middle = topleft_x + (bb_width / 2)
 	pixel_offset = middle - resolution[0] / 2
 	angle_offset = pixel_offset * (23.0 / (resolution[0] / 2))
+	return angle_offset
 
 if __name__ == "__main__":
 	capturing_thread = threading.Thread(target=capture_images)

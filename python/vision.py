@@ -149,12 +149,15 @@ def process_frames():
 			if using_networktables:
 				distance = 10.648 * 0.99857**bb_distance_from_bottom
 				log.info("Distance to target: {} feet".format(distance))
+				offsets = get_offsets(topleft_x, width, camera_resolution)
 				data = {
 					"topleft_x": topleft_x,
 					"topleft_y": topleft_y,
 					"width": width,
 					"height": height,
-					"horiz_offset": get_offset(topleft_x, width, camera_resolution),
+					"horiz_offset": offsets["angle_offset"],
+					"pixel_offset": offsets["pixel_offset"],
+					"bp_dist_from_bottom": bb_distance_from_bottom,
 					"distance_guess": distance,
 					"heartbeat": 1,
 					"can_see_target": 1,
@@ -163,11 +166,15 @@ def process_frames():
 	else:
 		log.warning("Frame is null (this probably means the camera hasn't started capturing yet.")
 
-def get_offset(topleft_x, bb_width, resolution):
+def get_offsets(topleft_x, bb_width, resolution):
 	middle = topleft_x + (bb_width / 2)
 	pixel_offset = middle - resolution[0] / 2
 	angle_offset = pixel_offset * (23.0 / (resolution[0] / 2))
-	return angle_offset
+	ret = {
+		"pixel_offset": pixel_offset,
+		"angle_offset": angle_offset,
+	}
+	return ret
 
 if __name__ == "__main__":
 	capturing_thread = threading.Thread(target=capture_images)

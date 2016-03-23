@@ -19,12 +19,14 @@ allprojects {
         box2DLightsVersion = '1.4'
         ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
+        networkTablesVersion = '3.0.0-SNAPSHOT'
     }
 
     repositories {
         mavenCentral()
         maven { url "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url "https://oss.sonatype.org/content/repositories/releases/" }
+        maven { url "http://first.wpi.edu/FRC/roborio/maven/release/" }
     }
 }
 
@@ -45,6 +47,7 @@ project(":core") {
 
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
+        compile "edu.wpi.first.wpilib.networktables.java:NetworkTables:$networkTablesVersion:desktop"
     }
 }
 

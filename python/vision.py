@@ -179,6 +179,10 @@ def get_offsets(topleft_x, bb_width, resolution):
 if __name__ == "__main__":
 	capturing_thread = threading.Thread(target=capture_images)
 	processing_thread = threading.Thread(target=process_frames)
+	capturing_thread.daemon = True
+	processing_thread.daemon = True
+	capturing_thread.start()
+	processing_thread.start()
 	while True:
 		try:
 			pass

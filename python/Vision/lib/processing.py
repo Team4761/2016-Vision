@@ -14,6 +14,7 @@ def process_frames():
         if frame is not None:
             # Threshold the BGR image
             mask = cv2.inRange(frame, lower_bound, upper_bound)
+            cv2.imwrite("mask.jpg", mask)
             print "Performed thresholding operation"
 
             ret, thresh = cv2.threshold(mask, 127, 255, 0)

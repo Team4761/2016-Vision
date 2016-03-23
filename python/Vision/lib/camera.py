@@ -32,7 +32,7 @@ def capture_images():
             frame = imutils.resize(f, width=resolution[0], height=resolution[1])
             lock.release()
     """
-
+    print "started capturing thread"
     global frame
     with picamera.PiCamera() as camera:
         camera.resolution = resolution

@@ -4,8 +4,8 @@ import cv2
 import numpy
 import time
 
-lower_bound = numpy.array([0,42,0])
-upper_bound = numpy.array([255,191,35])
+lower_bound = numpy.array([0,71,0])
+upper_bound = numpy.array([255,220,87])
 
 
 def process_frames():
@@ -14,7 +14,6 @@ def process_frames():
         if frame is not None:
             # Threshold the BGR image
             mask = cv2.inRange(frame, lower_bound, upper_bound)
-            cv2.imwrite("mask.jpg", mask)
             print "Performed thresholding operation"
 
             ret, thresh = cv2.threshold(mask, 127, 255, 0)
@@ -42,9 +41,10 @@ def process_frames():
             print "Distance from bottom (px): {}".format(bb_distance_from_bottom)
 
             not_valid = True
+
             # Check that area of bounding box is more that 3600 pixels (60x60)
             # TODO: Is this reasonable?
-            if not width * height < 3600:
+            if not width * height < 4000:
                 not_valid = False
 
             if not_valid:
@@ -52,7 +52,7 @@ def process_frames():
                 vision_table.write_dict({"can_see_target": 0})
                 continue
 
-            distance = 10.648 * 0.99857**bb_distance_from_bottom
+            distance = 11.119 * 0.99702**bb_distance_from_bottom
             print "Distance to target: {} feet".format(distance)
             offsets = get_offsets(topleft_x, width, resolution)
             data = {

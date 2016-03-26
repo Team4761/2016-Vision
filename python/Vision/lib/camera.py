@@ -36,7 +36,7 @@ def capture_images():
     global frame
     with picamera.PiCamera() as camera:
         camera.resolution = resolution
-        camera.shutter_speed = 100
+        camera.shutter_speed = 250
         time.sleep(0.5) # Shutter speed is not set instantly. This wait allows time for changes to take effect.
         print "Initialized camera..."
         with picamera.array.PiRGBArray(camera) as stream:

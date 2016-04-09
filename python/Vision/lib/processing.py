@@ -76,7 +76,7 @@ def process_frames():
 def get_offsets(topleft_x, bb_width, resolution):
     middle = topleft_x + (bb_width / 2)
     pixel_offset = middle - resolution[0] / 2
-    angle_offset = pixel_offset * (23.0 / (resolution[0] / 2))
+    angle_offset = pixel_offset * (26.5 / (resolution[0] / 2))
     ret = {
         "pixel_offset": pixel_offset,
         "angle_offset": angle_offset,
